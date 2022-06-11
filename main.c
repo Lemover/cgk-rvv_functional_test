@@ -1,22 +1,39 @@
 #define VLEN 256
-#define REG_TX		0x04
-#define REG_RX		0x00
-#define REG_STATUS	0x08
-#define REG_CONTROL	0x0C
 
-#define UART_TX_FULL    (1<<0x3)
-#define UART_RX_VALID   (1<<0x0)
+// pynq uses xuart, the below uart is actually xuart
 #define UART_BASE       0xe0000000
+#define XUARTPS_FIFO_OFFSET 0x0000000c
+#define XUARTPS_SR_OFFSET 0x0000000b
+#define SR_TX_FULL  0x10
+#define SR_RX_EMPTY 0x02
+
+#define UART_REG_TXFIFO		0
+#define UART_REG_RXFIFO		1
+#define UART_REG_TXCTRL		2
+#define UART_REG_RXCTRL		3
+#define UART_REG_DIV		4
+
+#define UART_TXEN		 0x1
+#define UART_RXEN		 0x1
+
+volatile unsigned int* uart;
+
+void uart_init() {
+  uart = (void *)UART_BASE;
+//     uart[UART_REG_TXCTRL] = UART_TXEN;
+//     uart[UART_REG_RXCTRL] = UART_RXEN;
+}
 
 void uart_putc(char ch) {
-    volatile char *uart_base = (char *)(UART_BASE);
-    while((*(char*)(uart_base + REG_STATUS) & UART_TX_FULL));
-    *(char *)(uart_base + REG_TX) = ch;
+    volatile unsigned int *tx = uart + XUARTPS_FIFO_OFFSET;
+    while((*((volatile unsigned char*)(uart + XUARTPS_SR_OFFSET)) & SR_TX_FULL) != 0);
+    *tx = ch;
 }
 
 void uart_puts(char *s) {
     int i = 0;
     while (s[i]) {
+        if (s[i]=='\n') uart_putc('\r');
     	uart_putc(s[i++]);
     }
 }
@@ -28,8 +45,10 @@ void uart_putn(int n) {
         buf[offset++] = n % 10 + '0';
         n = n / 10;
     } while (n);
-    for (int i = 0; i < offset; ++i) buf_r[offset-i-1] = buf[i];
-    buf_r[offset] = 0;
+
+    for (int i = 0; i < offset; ++i)
+      buf_r[offset-i-1] = buf[i]; buf_r[offset] = 0;
+
     uart_puts(buf_r);
 }
 
@@ -738,6 +757,8 @@ void memcpy(char* dest, char* source, int num) {
 }
 
 int non_main() {
+    uart_init();
+
     int count = 0;
     int (*vsetvl_tests[])() = {vsetvl_test, vsetvli_test};
     char *vsetvl_names[] ={"vsetvl", "vsetvli"};
@@ -748,14 +769,14 @@ int non_main() {
     int load_store_size = 3;
 
     int (*calc_tests[])() = {vaddvv_test, vaddvx_test, vaddvi_test, vandvv_test, vandvx_test, vandvi_test,
-                             vorvv_test, vorvx_test, vorvi_test, vrsubvx_test, vrsubvi_test, 
-                             vsllvv_test, vsllvx_test, vsllvi_test, vsravv_test, vsravx_test, vsravi_test, 
-                             vsrlvv_test, vsrlvx_test, vsrlvi_test, vsubvv_test, vsubvx_test, vsubvi_test, 
+                             vorvv_test, vorvx_test, vorvi_test, vrsubvx_test, vrsubvi_test,
+                             vsllvv_test, vsllvx_test, vsllvi_test, vsravv_test, vsravx_test, vsravi_test,
+                             vsrlvv_test, vsrlvx_test, vsrlvi_test, vsubvv_test, vsubvx_test, vsubvi_test,
                              vxorvv_test, vxorvx_test, vxorvi_test
     };
-    char *calc_names[] = {"vaddvv", "vaddvx", "vaddvi", "vandvv", "vandvx", "vandvi", 
-                          "vorvv", "vorvx", "vorvi", "vrsubvx", "vrsubvi", 
-                          "vsllvv", "vsllvx", "vsllvi", "vsravv", "vsravx", "vsravi", 
+    char *calc_names[] = {"vaddvv", "vaddvx", "vaddvi", "vandvv", "vandvx", "vandvi",
+                          "vorvv", "vorvx", "vorvi", "vrsubvx", "vrsubvi",
+                          "vsllvv", "vsllvx", "vsllvi", "vsravv", "vsravx", "vsravi",
                           "vsrlvv", "vsrlvx", "vsrlvi", "vsrlvv", "vsubvv", "vsubvx", "vsubvi",
                           "vxorvv", "vxorvx", "vxorvi"
     };

@@ -1,9 +1,10 @@
 _start:
     add sp, x0, x0
-    lui sp, %hi(0x81000000)
-    addi sp, sp, %lo(0x81000000)
-    slli sp, sp, 32
-    srli sp, sp, 32
+    la sp, stacks + 0x1000
+#     lui sp, %hi()
+#     addi sp, sp, %lo(0x81000000)
+#    slli sp, sp, 32
+#    srli sp, sp, 32
     li x1, 0
     /* skip sp */
     li x3, 0
@@ -39,3 +40,7 @@ _start:
     li x1, 0x2333
     ecall
 
+    .bss
+    .align 12
+stacks:
+    .skip 0x1000
