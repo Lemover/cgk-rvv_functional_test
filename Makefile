@@ -7,7 +7,7 @@
 # basic info
 ####################
 
-CROSS_PATH = /nfs/home/zhangzifei/rvv/cgk/rvv/build/bin
+CROSS_PATH = /home/zhangzifei/software/llvm/bin
 PREFIX = llvm-
 CC = ${CROSS_PATH}/clang-12
 OBJCOPY = ${CROSS_PATH}/${PREFIX}objcopy
